@@ -13,7 +13,12 @@ if not ANTHROPIC_API_KEY:
     st.error("❌ Missing ANTHROPIC_API_KEY in environment.")
     st.stop()
 
-client = Anthropic(api_key=ANTHROPIC_API_KEY)
+@st.cache_resource
+def get_anthropic_client(api_key):
+    """Initializes and caches the Anthropic client."""
+    return Anthropic(api_key=api_key)
+
+client = get_anthropic_client(ANTHROPIC_API_KEY)
 
 # ─────────────────────────────────────────────
 # PAGE CONFIG
