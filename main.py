@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from anthropic import Anthropic
 
 # ─────────────────────────────────────────────
-# ENVIRONMENT SETUP
+# ENVIRONMENT & CLIENT SETUP
 # ─────────────────────────────────────────────
 load_dotenv()
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
@@ -13,12 +13,19 @@ if not ANTHROPIC_API_KEY:
     st.error("❌ Missing ANTHROPIC_API_KEY in environment.")
     st.stop()
 
-@st.cache_resource
-def get_anthropic_client(api_key):
-    """Initializes and caches the Anthropic client."""
-    return Anthropic(api_key=api_key)
-
-client = get_anthropic_client(ANTHROPIC_API_KEY)
+# 💡 FIX 1: Initialize Anthropic client using st.session_state.
+# This ensures it's created only once per user session, resolving the TypeError 
+# that occurs during Streamlit reruns when initializing complex network clients 
+# like the Anthropic HTTPX client.
+if "anthropic_client" not in st.session_state:
+    try:
+        st.session_state.anthropic_client = Anthropic(api_key=ANTHROPIC_API_KEY)
+    except Exception as e:
+        st.error(f"❌ Failed to initialize Anthropic client: {e}")
+        st.stop()
+        
+# Assign the client from session state to a local variable for ease of use
+client = st.session_state.anthropic_client
 
 # ─────────────────────────────────────────────
 # PAGE CONFIG
@@ -64,8 +71,7 @@ st.sidebar.markdown("---")
 st.sidebar.markdown(
     """
 ### ▶️ How to Run
-1. Save as **`app.py`**  
-2. Create `.env` file with:
+1. Save as **`app.py`** 2. Create `.env` file with:
    ```
    ANTHROPIC_API_KEY=your_api_key_here
    ```
@@ -106,20 +112,26 @@ col1, col2 = st.columns([3, 1])
 with col1:
     new_page = st.text_input("Add a new page (e.g. 'Testimonials')", "")
 with col2:
-    if st.button("➕ Add Page") and new_page:
+    if st.button("➕ Add Page", key="add_page_btn") and new_page:
         if new_page not in st.session_state.pages:
             st.session_state.pages.append(new_page)
         else:
             st.warning("⚠️ Page already exists.")
-        st.experimental_rerun()
+        
+        # 💡 FIX 2: Use st.rerun() instead of deprecated st.experimental_rerun()
+        st.rerun()
 
 # Display and allow deletion
 for p in st.session_state.pages:
     cols = st.columns([4, 1])
     cols[0].markdown(f"• **{p}**")
-    if cols[1].button(f"🗑️ Delete {p}"):
+    
+    # 💡 FIX 3: Use unique keys for buttons inside a loop
+    if cols[1].button(f"🗑️ Delete {p}", key=f"delete_btn_{p}"):
         st.session_state.pages.remove(p)
-        st.experimental_rerun()
+        
+        # 💡 FIX 2: Use st.rerun() instead of deprecated st.experimental_rerun()
+        st.rerun()
 
 # ─────────────────────────────────────────────
 # CONTROLS FOR THEME & TEMPERATURE
@@ -175,12 +187,18 @@ if st.button("🚀 Generate Wireframe"):
             )
 
             html_output = response.content[0].text.strip()
+            
+            # Robust extraction of the HTML content, handling markdown code fences
             if html_output.startswith("```html"):
                 html_output = "\n".join(html_output.splitlines()[1:-1])
-
             html_output = re.sub(r"^```.*?\\n|```$", "", html_output, flags=re.S)
 
             st.success("✅ Wireframe generated successfully!")
+            
+            # Display the result in an expander for quick view
+            with st.expander("Preview HTML Output"):
+                st.code(html_output, language="html")
+                
             st.download_button(
                 label="💾 Download HTML File",
                 data=html_output,
