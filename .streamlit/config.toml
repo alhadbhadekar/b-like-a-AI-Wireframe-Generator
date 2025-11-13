@@ -1,0 +1,8 @@
+[theme]
+primaryColor="#22C55E"
+base="light"
+
+[server]
+headless = true
+enableCORS = false
+enableXsrfProtection = true
