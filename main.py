@@ -14,12 +14,15 @@ if not ANTHROPIC_API_KEY:
     st.stop()
 
 # 💡 FIX 1: Initialize Anthropic client using st.session_state.
-# This ensures it's created only once per user session, resolving the TypeError 
-# that occurs during Streamlit reruns when initializing complex network clients 
-# like the Anthropic HTTPX client.
 if "anthropic_client" not in st.session_state:
     try:
-        st.session_state.anthropic_client = Anthropic(api_key=ANTHROPIC_API_KEY)
+        # 🐛 FIX 4: Explicitly set proxies=None to prevent the TypeError 
+        # caused by automatic proxy detection from environment variables
+        # conflicting with the Anthropic client constructor.
+        st.session_state.anthropic_client = Anthropic(
+            api_key=ANTHROPIC_API_KEY,
+            proxies=None
+        )
     except Exception as e:
         st.error(f"❌ Failed to initialize Anthropic client: {e}")
         st.stop()
