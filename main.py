@@ -2,7 +2,7 @@ import os
 import re
 import streamlit as st
 from dotenv import load_dotenv
-from anthropic import Anthropic
+from anthropic import Client
 
 # ─────────────────────────────────────────────
 # ENVIRONMENT & CLIENT SETUP
@@ -13,21 +13,13 @@ if not ANTHROPIC_API_KEY:
     st.error("❌ Missing ANTHROPIC_API_KEY in environment.")
     st.stop()
 
-# 💡 FIX 1: Initialize Anthropic client using st.session_state.
 if "anthropic_client" not in st.session_state:
     try:
-        # 🐛 FINAL FIX: Explicitly setting http_client=None to force a clean internal 
-        # client creation, bypassing environment-driven configuration (like the 
-        # unexpected 'proxies' argument) that triggers the TypeError.
-        st.session_state.anthropic_client = Anthropic(
-            api_key=ANTHROPIC_API_KEY,
-            http_client=None 
-        )
+        st.session_state.anthropic_client = Client(api_key=ANTHROPIC_API_KEY)
     except Exception as e:
         st.error(f"❌ Failed to initialize Anthropic client: {e}")
         st.stop()
-        
-# Assign the client from session state to a local variable for ease of use
+
 client = st.session_state.anthropic_client
 
 # ─────────────────────────────────────────────
