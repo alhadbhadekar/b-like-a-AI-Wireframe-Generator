@@ -16,12 +16,12 @@ if not ANTHROPIC_API_KEY:
 # 💡 FIX 1: Initialize Anthropic client using st.session_state.
 if "anthropic_client" not in st.session_state:
     try:
-        # 🐛 FIX 4: Explicitly set proxies=None to prevent the TypeError 
-        # caused by automatic proxy detection from environment variables
-        # conflicting with the Anthropic client constructor.
+        # 🐛 FINAL FIX: Explicitly setting http_client=None to force a clean internal 
+        # client creation, bypassing environment-driven configuration (like the 
+        # unexpected 'proxies' argument) that triggers the TypeError.
         st.session_state.anthropic_client = Anthropic(
             api_key=ANTHROPIC_API_KEY,
-            proxies=None
+            http_client=None 
         )
     except Exception as e:
         st.error(f"❌ Failed to initialize Anthropic client: {e}")
